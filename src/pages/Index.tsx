@@ -41,14 +41,15 @@ const Index = () => {
     
     if (!validatePhoneNumber(phoneNumber)) {
       toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid 10-digit phone number starting with 0",
+        title: "หมายเลขโทรศัพท์ไม่ถูกต้อง",
+        description: "กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก ที่ขึ้นต้นด้วย 0",
         variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
+    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS จำนวน ${count} ครั้ง`);
     
     try {
       const endpoints = [
@@ -70,22 +71,22 @@ const Index = () => {
               tel: phoneNumber,
               type: "register"
             }, { headers });
-            addLog(phoneNumber, 'success', `SMS sent successfully via ${endpoint.split('/')[2]}`);
+            addLog(phoneNumber, 'success', `✓ ส่ง SMS สำเร็จผ่าน ${endpoint.split('/')[2]} [${i + 1}/${count}]`);
           } catch (error) {
-            addLog(phoneNumber, 'error', `Failed to send SMS via ${endpoint.split('/')[2]}`);
+            addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${endpoint.split('/')[2]} [${i + 1}/${count}]`);
             console.error(`Error with endpoint ${endpoint}:`, error);
           }
         }
       }
 
       toast({
-        title: "Success",
-        description: `Sent ${count} SMS requests successfully`,
+        title: "สำเร็จ",
+        description: `ส่ง SMS ไปยังหมายเลข ${phoneNumber} จำนวน ${count} ครั้ง`,
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An error occurred while sending SMS",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถส่ง SMS ได้",
         variant: "destructive",
       });
     } finally {
@@ -101,9 +102,9 @@ const Index = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                SMS Sender Pro
+                SMS BLASTER PRO
               </h2>
-              <p className="text-sm text-center text-gray-400">Advanced SMS Management Console</p>
+              <p className="text-sm text-center text-gray-400">ระบบส่ง SMS อัตโนมัติ</p>
             </div>
 
             <div className="space-y-4">
@@ -111,7 +112,7 @@ const Index = () => {
                 <SmartphoneCharging className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 <Input
                   type="tel"
-                  placeholder="Phone Number (e.g., 0812345678)"
+                  placeholder="เบอร์โทรศัพท์ (เช่น 0812345678)"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500"
@@ -123,7 +124,7 @@ const Index = () => {
                 <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                 <Input
                   type="number"
-                  placeholder="Number of SMS"
+                  placeholder="จำนวนครั้งที่ต้องการส่ง"
                   value={count}
                   onChange={(e) => setCount(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500"
@@ -137,7 +138,7 @@ const Index = () => {
                 className="w-full py-2 font-medium transition-all duration-200 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg"
                 disabled={loading}
               >
-                {loading ? "Sending..." : "Launch SMS Campaign"}
+                {loading ? "กำลังส่ง..." : "เริ่มส่ง SMS"}
               </Button>
             </div>
           </form>
@@ -149,7 +150,7 @@ const Index = () => {
         <Card className="h-[600px] p-6 backdrop-blur-sm bg-black/40 border-gray-700 shadow-2xl">
           <div className="flex items-center gap-2 mb-4">
             <Terminal className="h-5 w-5 text-green-400" />
-            <h3 className="text-lg font-semibold text-green-400">Live Console</h3>
+            <h3 className="text-lg font-semibold text-green-400">คอนโซลแสดงผล</h3>
           </div>
           <ScrollArea className="h-[500px] rounded-md border border-gray-700 bg-black/60 p-4">
             <div className="space-y-2">
@@ -158,16 +159,16 @@ const Index = () => {
                   key={index}
                   className={`p-2 rounded-md text-sm font-mono ${
                     log.status === 'success' ? 'bg-green-950/50 text-green-400' : 'bg-red-950/50 text-red-400'
-                  }`}
+                  } transition-all duration-200 hover:scale-[1.02]`}
                 >
                   <span className="text-gray-500">[{log.timestamp}]</span>{' '}
-                  <span className="text-blue-400">{log.phone}:</span>{' '}
+                  <span className="text-blue-400">เบอร์ {log.phone}:</span>{' '}
                   {log.message}
                 </div>
               ))}
               {logs.length === 0 && (
-                <div className="text-gray-500 text-center py-4">
-                  Waiting for SMS campaign to start...
+                <div className="text-gray-500 text-center py-4 animate-pulse">
+                  รอการเริ่มต้นส่ง SMS...
                 </div>
               )}
             </div>

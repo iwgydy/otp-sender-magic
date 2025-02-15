@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
-import { motion } from "framer-motion";
 
 const Index = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -76,11 +75,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div className="animate-fadeIn">
         <Card className="w-full max-w-md p-6 backdrop-blur-sm bg-white/90 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -122,7 +117,7 @@ const Index = () => {
             </div>
           </form>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 };

@@ -95,6 +95,17 @@ export const useSMSBlaster = () => {
     setRemainingTime(totalSeconds);
     addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
     
+    // Start countdown timer
+    const countdownInterval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
     const sendSMS = async () => {
       const endpoints = [
         'https://openapi.bigc.co.th/customer/v1/otp',
@@ -122,11 +133,12 @@ export const useSMSBlaster = () => {
       }
     };
 
-    const interval = setInterval(sendSMS, 30000);
+    const smsInterval = setInterval(sendSMS, 30000);
     await sendSMS();
 
     setTimeout(() => {
-      clearInterval(interval);
+      clearInterval(smsInterval);
+      clearInterval(countdownInterval);
       setLoading(false);
       setRemainingTime(0);
       addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);

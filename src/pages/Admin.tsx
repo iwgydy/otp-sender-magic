@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Key, UserPlus, Calendar, Trash2 } from "lucide-react";
+import { Key, UserPlus, Calendar, Trash2, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 
 interface APIKey {
@@ -124,7 +126,15 @@ const Admin = () => {
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-8">จัดการ API Keys</h1>
+        <div className="flex justify-between items-center mb-8">
+          <Link to="/">
+            <Button variant="ghost" className="text-gray-400 hover:text-gray-200">
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              กลับหน้าหลัก
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold text-white">จัดการ API Keys</h1>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Create New Key */}

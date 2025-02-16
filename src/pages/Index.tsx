@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Terminal, Clock, SmartphoneCharging, Shield, Rocket, Award } from "lucide-react";
+import { Terminal, Clock, SmartphoneCharging, Shield, Rocket, Award, Key } from "lucide-react";
 import axios from "axios";
 
 interface LogEntry {
@@ -15,27 +15,74 @@ interface LogEntry {
   message: string;
 }
 
+interface PhoneReport {
+  reason: string;
+  count: number;
+}
+
 const Index = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [minutes, setMinutes] = useState("1");
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [remainingTime, setRemainingTime] = useState<number>(0);
+  const [apiKey, setApiKey] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [phoneReport, setPhoneReport] = useState<PhoneReport | null>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (remainingTime > 0) {
-      timerRef.current = setInterval(() => {
-        setRemainingTime(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [remainingTime]);
 
   const validatePhoneNumber = (number: string) => {
     const regex = /^0\d{9}$/;
     return regex.test(number);
+  };
+
+  const checkPhoneReport = async (phone: string) => {
+    try {
+      const response = await axios.get(`https://goak-71ac8-default-rtdb.firebaseio.com/reports/${phone}.json`);
+      if (response.data) {
+        setPhoneReport(response.data);
+        setShowKeyInput(true);
+        toast({
+          title: "⚠️ คำเตือน",
+          description: `เบอร์นี้ถูกรายงานว่า: ${response.data.reason}`,
+          variant: "destructive",
+        });
+      } else {
+        setShowKeyInput(true);
+      }
+    } catch (error) {
+      console.error("Error checking phone report:", error);
+      setShowKeyInput(true);
+    }
+  };
+
+  const validateApiKey = async (key: string) => {
+    try {
+      const response = await axios.get(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${key}.json`);
+      if (response.data && response.data.active) {
+        const expireDate = new Date(response.data.expireDate);
+        if (expireDate > new Date()) {
+          return true;
+        } else {
+          toast({
+            title: "API Key หมดอายุ",
+            description: "กรุณาติดต่อแอดมินเพื่อต่ออายุ Key",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+      toast({
+        title: "API Key ไม่ถูกต้อง",
+        description: "กรุณาตรวจสอบ Key ของท่าน",
+        variant: "destructive",
+      });
+      return false;
+    } catch (error) {
+      console.error("Error validating API key:", error);
+      return false;
+    }
   };
 
   const addLog = (phone: string, status: 'success' | 'error', message: string) => {
@@ -47,7 +94,7 @@ const Index = () => {
     }, ...prev]);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validatePhoneNumber(phoneNumber)) {
@@ -59,6 +106,16 @@ const Index = () => {
       return;
     }
 
+    await checkPhoneReport(phoneNumber);
+  };
+
+  const handleApiKeySubmit = async () => {
+    if (await validateApiKey(apiKey)) {
+      startSMSBlast();
+    }
+  };
+
+  const startSMSBlast = async () => {
     setLoading(true);
     const totalSeconds = parseInt(minutes) * 60;
     setRemainingTime(totalSeconds);
@@ -91,11 +148,9 @@ const Index = () => {
       }
     };
 
-    // เริ่มต้นการส่ง SMS ทุก 30 วินาที
     const interval = setInterval(sendSMS, 30000);
-    await sendSMS(); // ส่งครั้งแรกทันที
+    await sendSMS();
 
-    // ตั้งเวลาหยุดการส่ง
     setTimeout(() => {
       clearInterval(interval);
       setLoading(false);
@@ -149,7 +204,7 @@ const Index = () => {
           {/* Input Panel */}
           <div className="w-full md:w-1/2 animate-fadeIn">
             <Card className="p-6 backdrop-blur-sm bg-black/40 border-gray-700 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handlePhoneSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
                     ตั้งค่าการส่ง
@@ -183,6 +238,19 @@ const Index = () => {
                     />
                   </div>
 
+                  {showKeyInput && (
+                    <div className="relative group">
+                      <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+                      <Input
+                        type="text"
+                        placeholder="กรุณากรอก API Key"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 transition-all"
+                      />
+                    </div>
+                  )}
+
                   {remainingTime > 0 && (
                     <div className="text-center text-sm">
                       <span className="text-blue-400">เวลาที่เหลือ: </span>
@@ -192,8 +260,20 @@ const Index = () => {
                     </div>
                   )}
 
+                  {phoneReport && (
+                    <div className="p-3 bg-red-900/50 rounded-md border border-red-500/50">
+                      <p className="text-red-400 text-sm">
+                        ⚠️ เบอร์นี้ถูกรายงาน: {phoneReport.reason}
+                      </p>
+                      <p className="text-red-400 text-sm">
+                        จำนวนรายงาน: {phoneReport.count} ครั้ง
+                      </p>
+                    </div>
+                  )}
+
                   <Button
-                    type="submit"
+                    type={showKeyInput ? "button" : "submit"}
+                    onClick={showKeyInput ? handleApiKeySubmit : undefined}
                     className="w-full py-2 font-medium transition-all duration-200 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-blue-500/20"
                     disabled={loading}
                   >
@@ -204,8 +284,17 @@ const Index = () => {
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
-                        <Rocket className="h-4 w-4" />
-                        <span>เริ่มส่ง SMS</span>
+                        {showKeyInput ? (
+                          <>
+                            <Key className="h-4 w-4" />
+                            <span>ยืนยัน API Key</span>
+                          </>
+                        ) : (
+                          <>
+                            <Rocket className="h-4 w-4" />
+                            <span>ตรวจสอบเบอร์</span>
+                          </>
+                        )}
                       </div>
                     )}
                   </Button>

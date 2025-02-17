@@ -3,7 +3,6 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Terminal, Wifi, Shield, Zap, Phone, Repeat, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface LogEntry {
   timestamp: string;
@@ -19,10 +18,9 @@ interface ConsoleOutputProps {
     count: number;
     reason: string;
   };
-  onAcknowledge?: () => void;
 }
 
-const ConsoleOutput = ({ logs, lastDialed, onAcknowledge }: ConsoleOutputProps) => (
+const ConsoleOutput = ({ logs, lastDialed }: ConsoleOutputProps) => (
   <Card className="h-[600px] p-6 backdrop-blur-sm bg-black/40 border-gray-700 shadow-2xl hover:shadow-green-500/10 transition-all duration-300">
     <div className="flex items-center gap-2 mb-4">
       <Terminal className="h-5 w-5 text-green-400 animate-pulse" />
@@ -101,12 +99,6 @@ const ConsoleOutput = ({ logs, lastDialed, onAcknowledge }: ConsoleOutputProps) 
                   </div>
                 </div>
               )}
-              <Button 
-                className="mt-6 w-full bg-green-600 hover:bg-green-700"
-                onClick={onAcknowledge}
-              >
-                รับทราบและเริ่มใช้งาน
-              </Button>
             </div>
             <div className="text-xs text-gray-600 font-mono">
               {">>> "}

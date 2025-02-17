@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import Header from "@/components/sms-blaster/Header";
 import FeatureCards from "@/components/sms-blaster/FeatureCards";
 import InputPanel from "@/components/sms-blaster/InputPanel";
@@ -7,7 +7,6 @@ import ConsoleOutput from "@/components/sms-blaster/ConsoleOutput";
 import { useSMSBlaster } from "@/hooks/useSMSBlaster";
 
 const Index = () => {
-  const [acknowledged, setAcknowledged] = useState(false);
   const {
     phoneNumber,
     setPhoneNumber,
@@ -43,7 +42,7 @@ const Index = () => {
               minutes={minutes}
               setMinutes={setMinutes}
               loading={loading}
-              showKeyInput={showKeyInput && acknowledged}
+              showKeyInput={showKeyInput}
               apiKey={apiKey}
               setApiKey={setApiKey}
               remainingTime={remainingTime}
@@ -56,7 +55,6 @@ const Index = () => {
             <ConsoleOutput 
               logs={logs} 
               lastDialed={lastDialed}
-              onAcknowledge={() => setAcknowledged(true)}
             />
           </div>
         </div>

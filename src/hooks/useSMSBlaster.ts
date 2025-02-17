@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
@@ -24,21 +23,29 @@ export const useSMSBlaster = () => {
   const [apiKey, setApiKey] = useState("");
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [phoneReport, setPhoneReport] = useState<PhoneReport | null>(null);
+  const [phoneHistory, setPhoneHistory] = useState<Set<string>>(new Set());
   const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
+
+  const addLog = (phone: string, status: 'success' | 'error', message: string) => {
+    setLogs(prev => {
+      const newLog = {
+        timestamp: new Date().toLocaleTimeString(),
+        phone,
+        status,
+        message
+      };
+      // เก็บเบอร์ลงในประวัติ
+      setPhoneHistory(prev => new Set(prev.add(phone)));
+      // จำกัดการแสดงผลเฉพาะ 50 รายการล่าสุด
+      const newLogs = [newLog, ...prev].slice(0, 50);
+      return newLogs;
+    });
+  };
 
   const validatePhoneNumber = (number: string) => {
     const regex = /^0\d{9}$/;
     return regex.test(number);
-  };
-
-  const addLog = (phone: string, status: 'success' | 'error', message: string) => {
-    setLogs(prev => [{
-      timestamp: new Date().toLocaleTimeString(),
-      phone,
-      status,
-      message
-    }, ...prev]);
   };
 
   const checkPhoneReport = async (phone: string) => {
@@ -123,10 +130,8 @@ export const useSMSBlaster = () => {
     setRemainingTime(totalSeconds);
     addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
     
-    // Update used minutes
     await updateUsedMinutes();
     
-    // Start countdown timer
     const countdownInterval = setInterval(() => {
       setRemainingTime(prev => {
         if (prev <= 1) {
@@ -156,7 +161,6 @@ export const useSMSBlaster = () => {
       }
     };
 
-    // Send SMS every second
     const smsInterval = setInterval(async () => {
       await sendSMS();
     }, 1000);
@@ -207,6 +211,7 @@ export const useSMSBlaster = () => {
     setApiKey,
     showKeyInput,
     phoneReport,
+    phoneHistory,
     handlePhoneSubmit,
     handleApiKeySubmit,
   };

@@ -104,7 +104,7 @@ export const useSMSBlaster = () => {
         return prev - 1;
       });
     }, 1000);
-    
+
     const sendSMS = async () => {
       const endpoints = [
         { api: api1, name: 'API 1' },
@@ -124,8 +124,10 @@ export const useSMSBlaster = () => {
       }
     };
 
-    const smsInterval = setInterval(sendSMS, 30000);
-    await sendSMS();
+    // Send SMS every second if the user chose 1 minute
+    const smsInterval = setInterval(async () => {
+      await sendSMS();
+    }, 1000); // Every second
 
     setTimeout(() => {
       clearInterval(smsInterval);

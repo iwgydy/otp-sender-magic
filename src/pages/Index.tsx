@@ -23,12 +23,6 @@ const Index = () => {
     handleApiKeySubmit,
   } = useSMSBlaster();
 
-  const lastDialed = logs.length > 0 ? {
-    phone: logs[0].phone,
-    count: logs.filter(log => log.phone === logs[0].phone).length,
-    reason: "ทดสอบการส่ง SMS"
-  } : undefined;
-
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="max-w-7xl mx-auto">
@@ -52,10 +46,7 @@ const Index = () => {
             />
           </div>
           <div className="w-full md:w-1/2 animate-fadeIn">
-            <ConsoleOutput 
-              logs={logs} 
-              lastDialed={lastDialed}
-            />
+            <ConsoleOutput logs={logs} />
           </div>
         </div>
       </div>

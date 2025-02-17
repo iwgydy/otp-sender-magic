@@ -195,18 +195,12 @@ const api2 = async (phone: string) => {
   const headers = {
     "Content-Type": "application/json",
     "Accept": "application/json, text/plain, */*",
-    "Device-Info": (
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-      "(KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0"
-    ),
+    "Device-Info": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0",
     "Language": "th",
     "Origin": "https://www.bigc.co.th",
     "Platform": "web-desktop",
     "Referer": "https://www.bigc.co.th/",
-    "User-Agent": (
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-      "(KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0"
-    ),
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0",
     "Version": "1.69.3",
   };
   const data = { phone_no: phone };

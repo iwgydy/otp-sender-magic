@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Key, UserPlus, Calendar, Trash2, ArrowLeft } from "lucide-react";
+import { Key, UserPlus, Calendar, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
@@ -14,6 +14,8 @@ interface APIKey {
   users: string[];
   expireDate: string;
   active: boolean;
+  totalMinutes?: number;
+  usedMinutes?: number;
 }
 
 const Admin = () => {
@@ -21,6 +23,7 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [expireDate, setExpireDate] = useState("");
+  const [totalMinutes, setTotalMinutes] = useState("60"); // Default 60 minutes
   const [keys, setKeys] = useState<APIKey[]>([]);
   const { toast } = useToast();
 
@@ -62,7 +65,7 @@ const Admin = () => {
   };
 
   const createKey = async () => {
-    if (!newKey || !expireDate) {
+    if (!newKey || !expireDate || !totalMinutes) {
       toast({
         title: "กรุณากรอกข้อมูลให้ครบ",
         variant: "destructive",
@@ -75,6 +78,8 @@ const Admin = () => {
         users: [],
         expireDate,
         active: true,
+        totalMinutes: parseInt(totalMinutes),
+        usedMinutes: 0,
       });
       toast({
         title: "สร้าง API Key สำเร็จ",
@@ -83,6 +88,7 @@ const Admin = () => {
       loadKeys();
       setNewKey("");
       setExpireDate("");
+      setTotalMinutes("60");
     } catch (error) {
       console.error("Error creating key:", error);
     }
@@ -163,6 +169,18 @@ const Admin = () => {
                   className="pl-10"
                 />
               </div>
+              <div className="relative">
+                <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Input
+                  type="number"
+                  value={totalMinutes}
+                  onChange={(e) => setTotalMinutes(e.target.value)}
+                  placeholder="จำนวนนาทีที่สามารถใช้งานได้"
+                  className="pl-10"
+                  min="1"
+                  max="1440"
+                />
+              </div>
               <Button onClick={createKey} className="w-full bg-green-600 hover:bg-green-700">
                 บันทึก API Key
               </Button>
@@ -188,6 +206,9 @@ const Admin = () => {
                           ) : (
                             <span className="text-red-400">ปิดใช้งาน</span>
                           )}
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          เวลาที่ใช้ได้: {key.usedMinutes || 0}/{key.totalMinutes || 0} นาที
                         </p>
                       </div>
                       <Button

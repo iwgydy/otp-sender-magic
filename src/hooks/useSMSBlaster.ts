@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
@@ -66,6 +67,19 @@ export const useSMSBlaster = () => {
       if (response.data && response.data.active) {
         const expireDate = new Date(response.data.expireDate);
         if (expireDate > new Date()) {
+          // Check remaining minutes
+          const totalMinutes = response.data.totalMinutes || 0;
+          const usedMinutes = response.data.usedMinutes || 0;
+          const requestedMinutes = parseInt(minutes);
+          
+          if (usedMinutes + requestedMinutes > totalMinutes) {
+            toast({
+              title: "เวลาไม่เพียงพอ",
+              description: `คีย์นี้เหลือเวลาใช้งานได้อีก ${totalMinutes - usedMinutes} นาที`,
+              variant: "destructive",
+            });
+            return false;
+          }
           return true;
         } else {
           toast({
@@ -88,11 +102,29 @@ export const useSMSBlaster = () => {
     }
   };
 
+  const updateUsedMinutes = async () => {
+    try {
+      const response = await axios.get(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${apiKey}.json`);
+      if (response.data) {
+        const currentUsedMinutes = response.data.usedMinutes || 0;
+        const newUsedMinutes = currentUsedMinutes + parseInt(minutes);
+        await axios.patch(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${apiKey}.json`, {
+          usedMinutes: newUsedMinutes
+        });
+      }
+    } catch (error) {
+      console.error("Error updating used minutes:", error);
+    }
+  };
+
   const startSMSBlast = async () => {
     setLoading(true);
     const totalSeconds = parseInt(minutes) * 60;
     setRemainingTime(totalSeconds);
     addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
+    
+    // Update used minutes
+    await updateUsedMinutes();
     
     // Start countdown timer
     const countdownInterval = setInterval(() => {
@@ -124,10 +156,10 @@ export const useSMSBlaster = () => {
       }
     };
 
-    // Send SMS every second if the user chose 1 minute
+    // Send SMS every second
     const smsInterval = setInterval(async () => {
       await sendSMS();
-    }, 1000); // Every second
+    }, 1000);
 
     setTimeout(() => {
       clearInterval(smsInterval);

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Key, UserPlus, Calendar, Trash2, ArrowLeft, Clock } from "lucide-react";
+import { Key, UserPlus, Calendar, Trash2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
@@ -14,8 +14,6 @@ interface APIKey {
   users: string[];
   expireDate: string;
   active: boolean;
-  minutesLimit: number;
-  minutesUsed: number;
 }
 
 const Admin = () => {
@@ -23,7 +21,6 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [expireDate, setExpireDate] = useState("");
-  const [minutesLimit, setMinutesLimit] = useState("60");
   const [keys, setKeys] = useState<APIKey[]>([]);
   const { toast } = useToast();
 
@@ -65,7 +62,7 @@ const Admin = () => {
   };
 
   const createKey = async () => {
-    if (!newKey || !expireDate || !minutesLimit) {
+    if (!newKey || !expireDate) {
       toast({
         title: "กรุณากรอกข้อมูลให้ครบ",
         variant: "destructive",
@@ -78,8 +75,6 @@ const Admin = () => {
         users: [],
         expireDate,
         active: true,
-        minutesLimit: parseInt(minutesLimit),
-        minutesUsed: 0
       });
       toast({
         title: "สร้าง API Key สำเร็จ",
@@ -88,7 +83,6 @@ const Admin = () => {
       loadKeys();
       setNewKey("");
       setExpireDate("");
-      setMinutesLimit("60");
     } catch (error) {
       console.error("Error creating key:", error);
     }
@@ -143,6 +137,7 @@ const Admin = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Create New Key */}
           <Card className="p-6 backdrop-blur-sm bg-black/40 border-gray-700">
             <h2 className="text-xl font-semibold text-white mb-4">สร้าง API Key ใหม่</h2>
             <div className="space-y-4">
@@ -168,23 +163,13 @@ const Admin = () => {
                   className="pl-10"
                 />
               </div>
-              <div className="relative">
-                <Clock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <Input
-                  type="number"
-                  value={minutesLimit}
-                  onChange={(e) => setMinutesLimit(e.target.value)}
-                  placeholder="จำนวนนาทีที่อนุญาต"
-                  className="pl-10"
-                  min="1"
-                />
-              </div>
               <Button onClick={createKey} className="w-full bg-green-600 hover:bg-green-700">
                 บันทึก API Key
               </Button>
             </div>
           </Card>
 
+          {/* Existing Keys */}
           <Card className="p-6 backdrop-blur-sm bg-black/40 border-gray-700">
             <h2 className="text-xl font-semibold text-white mb-4">API Keys ที่มีอยู่</h2>
             <ScrollArea className="h-[400px]">
@@ -203,9 +188,6 @@ const Admin = () => {
                           ) : (
                             <span className="text-red-400">ปิดใช้งาน</span>
                           )}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          เวลาที่ใช้ได้: {key.minutesLimit - (key.minutesUsed || 0)}/{key.minutesLimit} นาที
                         </p>
                       </div>
                       <Button

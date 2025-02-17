@@ -66,19 +66,6 @@ export const useSMSBlaster = () => {
       if (response.data && response.data.active) {
         const expireDate = new Date(response.data.expireDate);
         if (expireDate > new Date()) {
-          // Check minutes limit
-          const minutesLimit = response.data.minutesLimit || 60;
-          const minutesUsed = response.data.minutesUsed || 0;
-          const requestedMinutes = parseInt(minutes);
-          
-          if (minutesUsed + requestedMinutes > minutesLimit) {
-            toast({
-              title: "เกินจำนวนนาทีที่กำหนด",
-              description: `คีย์นี้เหลือเวลาใช้งานได้อีก ${minutesLimit - minutesUsed} นาที`,
-              variant: "destructive",
-            });
-            return false;
-          }
           return true;
         } else {
           toast({
@@ -101,23 +88,8 @@ export const useSMSBlaster = () => {
     }
   };
 
-  const updateMinutesUsed = async () => {
-    try {
-      const response = await axios.get(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${apiKey}.json`);
-      if (response.data) {
-        const currentMinutesUsed = response.data.minutesUsed || 0;
-        await axios.patch(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${apiKey}.json`, {
-          minutesUsed: currentMinutesUsed + parseInt(minutes)
-        });
-      }
-    } catch (error) {
-      console.error("Error updating minutes used:", error);
-    }
-  };
-
   const startSMSBlast = async () => {
     setLoading(true);
-    await updateMinutesUsed();
     const totalSeconds = parseInt(minutes) * 60;
     setRemainingTime(totalSeconds);
     addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);

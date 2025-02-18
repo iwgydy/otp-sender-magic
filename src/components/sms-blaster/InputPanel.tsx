@@ -3,7 +3,8 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SmartphoneCharging, Clock, Key, Rocket } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SmartphoneCharging, Clock, Key, Rocket, Zap } from "lucide-react";
 
 interface PhoneReport {
   reason: string;
@@ -21,6 +22,8 @@ interface InputPanelProps {
   setApiKey: (value: string) => void;
   remainingTime: number;
   phoneReport: PhoneReport | null;
+  speed: string;
+  setSpeed: (value: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
   handleApiKeySubmit: () => void;
 }
@@ -36,6 +39,8 @@ const InputPanel = ({
   setApiKey,
   remainingTime,
   phoneReport,
+  speed,
+  setSpeed,
   handleSubmit,
   handleApiKeySubmit,
 }: InputPanelProps) => (
@@ -72,6 +77,21 @@ const InputPanel = ({
             min="1"
             max="60"
           />
+        </div>
+
+        <div className="relative group">
+          <Zap className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+          <Select value={speed} onValueChange={setSpeed}>
+            <SelectTrigger className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-gray-100">
+              <SelectValue placeholder="เลือกความเร็วในการยิง" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="slow">ช้า (1000ms)</SelectItem>
+              <SelectItem value="normal">ปกติ (500ms)</SelectItem>
+              <SelectItem value="fast">เร็ว (200ms)</SelectItem>
+              <SelectItem value="ultra">เร็วมาก (100ms)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {showKeyInput && (

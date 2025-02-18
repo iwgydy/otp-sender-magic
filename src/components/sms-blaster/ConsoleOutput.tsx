@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +17,7 @@ interface ConsoleOutputProps {
 
 const ConsoleOutput = ({ logs, phoneHistory }: ConsoleOutputProps) => {
   const lastPhone = logs.length > 0 ? logs[0].phone : null;
+  const uniquePhones = Array.from(phoneHistory).reverse(); // แสดงเบอร์ล่าสุดก่อน
 
   return (
     <Card className="h-[600px] p-6 backdrop-blur-sm bg-black/40 border-gray-700 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
@@ -51,12 +51,23 @@ const ConsoleOutput = ({ logs, phoneHistory }: ConsoleOutputProps) => {
               <div className="ml-auto flex items-center gap-2">
                 <Database className="h-4 w-4 text-yellow-400" />
                 <span className="text-xs text-gray-500">
-                  History: <span className="text-yellow-400">{phoneHistory.size}</span> numbers
+                  ประวัติทั้งหมด: <span className="text-yellow-400">{phoneHistory.size}</span> เบอร์
                 </span>
               </div>
             </div>
           </div>
         )}
+
+        <div className="p-3 bg-gray-800/50 rounded-md border border-gray-700 backdrop-blur-md">
+          <div className="text-xs text-gray-400 mb-2">ประวัติเบอร์ที่ยิง:</div>
+          <div className="flex flex-wrap gap-2">
+            {uniquePhones.map((phone) => (
+              <span key={phone} className="text-xs text-blue-400 bg-blue-900/30 px-2 py-0.5 rounded-md">
+                {phone}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
       <ScrollArea className="h-[420px] rounded-md border border-gray-700 bg-black/60 p-4">

@@ -25,10 +25,7 @@ export const useSMSBlaster = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [minutes, setMinutes] = useState("1");
   const [loading, setLoading] = useState(false);
-  const [logs, setLogs] = useState<LogEntry[]>(() => {
-    const savedLogs = localStorage.getItem('smsBlasterLogs');
-    return savedLogs ? JSON.parse(savedLogs) : [];
-  });
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [remainingTime, setRemainingTime] = useState<number>(0);
   const [apiKey, setApiKey] = useState("");
   const [showKeyInput, setShowKeyInput] = useState(false);
@@ -38,77 +35,12 @@ export const useSMSBlaster = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    localStorage.setItem('smsBlasterLogs', JSON.stringify(logs));
-  }, [logs]);
-
-  const addLog = async (phone: string, status: 'success' | 'error', message: string) => {
-    const newLog = {
-      timestamp: new Date().toLocaleTimeString(),
-      phone,
-      status,
-      message
-    };
-    
-    setLogs(prev => {
-      const newLogs = [newLog, ...prev];
-      return newLogs.slice(0, 100);
-    });
-    
-    await saveToHistory(phone, status);
-    setPhoneHistory(prev => new Set(prev.add(phone)));
-  };
-
-  const startSMSBlast = async () => {
-    setLoading(true);
-    const totalSeconds = parseInt(minutes) * 60;
-    setRemainingTime(totalSeconds);
-    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
-    
-    await updateUsedMinutes();
-    
-    let timeLeft = totalSeconds;
-    const smsInterval = setInterval(async () => {
-      if (timeLeft <= 0) {
-        clearInterval(smsInterval);
-        setLoading(false);
-        setRemainingTime(0);
-        addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
-        toast({
-          title: "สำเร็จ",
-          description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
-        });
-        return;
-      }
-
-      const sendPromises = [
-        { api: api1, name: 'Lotus\'s', icon: '🏪' },
-        { api: api2, name: 'TrueWallet', icon: '💳' },
-        { api: api3, name: '1112', icon: '📱' },
-        { api: api4, name: 'CH3+', icon: '📺' }
-      ].map(async ({ api, name, icon }) => {
-        try {
-          await api(phoneNumber);
-          addLog(phoneNumber, 'success', `${icon} ส่ง SMS สำเร็จผ่าน ${name}`);
-        } catch (error) {
-          addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${name}`);
-          console.error(`Error with endpoint ${name}:`, error);
-        }
-      });
-
-      await Promise.all(sendPromises);
-      
-      timeLeft--;
-      setRemainingTime(timeLeft);
-    }, 500);
-
-    timerRef.current = smsInterval;
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  };
+    // Load phone history on mount
+    loadPhoneHistory();
+    // Clean up old records every hour
+    const cleanupInterval = setInterval(cleanupOldRecords, 3600000);
+    return () => clearInterval(cleanupInterval);
+  }, []);
 
   const loadPhoneHistory = async () => {
     try {
@@ -155,6 +87,22 @@ export const useSMSBlaster = () => {
     }
   };
 
+  const addLog = async (phone: string, status: 'success' | 'error', message: string) => {
+    setLogs(prev => {
+      const newLog = {
+        timestamp: new Date().toLocaleTimeString(),
+        phone,
+        status,
+        message
+      };
+      const newLogs = [newLog, ...prev].slice(0, 50);
+      return newLogs;
+    });
+    
+    await saveToHistory(phone, status);
+    setPhoneHistory(prev => new Set(prev.add(phone)));
+  };
+
   const validatePhoneNumber = (number: string) => {
     const regex = /^0\d{9}$/;
     return regex.test(number);
@@ -186,6 +134,7 @@ export const useSMSBlaster = () => {
       if (response.data && response.data.active) {
         const expireDate = new Date(response.data.expireDate);
         if (expireDate > new Date()) {
+          // Check remaining minutes
           const totalMinutes = response.data.totalMinutes || 0;
           const usedMinutes = response.data.usedMinutes || 0;
           const requestedMinutes = parseInt(minutes);
@@ -233,6 +182,60 @@ export const useSMSBlaster = () => {
     } catch (error) {
       console.error("Error updating used minutes:", error);
     }
+  };
+
+  const startSMSBlast = async () => {
+    setLoading(true);
+    const totalSeconds = parseInt(minutes) * 60;
+    setRemainingTime(totalSeconds);
+    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
+    
+    await updateUsedMinutes();
+    
+    const countdownInterval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const sendSMS = async () => {
+      const endpoints = [
+        { api: api1, name: 'Lotus\'s' },
+        { api: api2, name: 'TrueWallet' },
+        { api: api3, name: '1112' },
+        { api: api4, name: 'CH3+' }
+      ];
+
+      for (const { api, name } of endpoints) {
+        try {
+          await api(phoneNumber);
+          addLog(phoneNumber, 'success', `✓ ส่ง SMS สำเร็จผ่าน ${name}`);
+        } catch (error) {
+          addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${name}`);
+          console.error(`Error with endpoint ${name}:`, error);
+        }
+      }
+    };
+
+    const smsInterval = setInterval(async () => {
+      await sendSMS();
+    }, 1000);
+
+    setTimeout(() => {
+      clearInterval(smsInterval);
+      clearInterval(countdownInterval);
+      setLoading(false);
+      setRemainingTime(0);
+      addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
+      toast({
+        title: "สำเร็จ",
+        description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
+      });
+    }, totalSeconds * 1000);
   };
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {

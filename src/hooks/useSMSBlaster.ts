@@ -34,7 +34,6 @@ export const useSMSBlaster = () => {
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [phoneReport, setPhoneReport] = useState<PhoneReport | null>(null);
   const [phoneHistory, setPhoneHistory] = useState<Set<string>>(new Set());
-  const [speed, setSpeed] = useState<string>("normal");
   const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
@@ -59,49 +58,15 @@ export const useSMSBlaster = () => {
     setPhoneHistory(prev => new Set(prev.add(phone)));
   };
 
-  const getSpeedInterval = (selectedSpeed: string): number => {
-    switch (selectedSpeed) {
-      case "slow": return 1000;
-      case "normal": return 500;
-      case "fast": return 200;
-      case "ultra": return 100;
-      default: return 500;
-    }
-  };
-
-  const checkBlockedNumber = async (phone: string) => {
-    try {
-      const response = await axios.get(`https://goak-71ac8-default-rtdb.firebaseio.com/blocked/${phone}.json`);
-      if (response.data) {
-        toast({
-          title: "เบอร์นี้ถูกบล็อก",
-          description: `เหตุผล: ${response.data.reason}`,
-          variant: "destructive",
-        });
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Error checking blocked number:", error);
-      return false;
-    }
-  };
-
   const startSMSBlast = async () => {
-    if (await checkBlockedNumber(phoneNumber)) {
-      return;
-    }
-
     setLoading(true);
     const totalSeconds = parseInt(minutes) * 60;
     setRemainingTime(totalSeconds);
-    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที ที่ความเร็ว ${speed}`);
+    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
     
     await updateUsedMinutes();
     
     let timeLeft = totalSeconds;
-    const interval = getSpeedInterval(speed);
-    
     const smsInterval = setInterval(async () => {
       if (timeLeft <= 0) {
         clearInterval(smsInterval);
@@ -134,7 +99,7 @@ export const useSMSBlaster = () => {
       
       timeLeft--;
       setRemainingTime(timeLeft);
-    }, interval);
+    }, 500);
 
     timerRef.current = smsInterval;
 
@@ -304,8 +269,6 @@ export const useSMSBlaster = () => {
     showKeyInput,
     phoneReport,
     phoneHistory,
-    speed,
-    setSpeed,
     handlePhoneSubmit,
     handleApiKeySubmit,
   };

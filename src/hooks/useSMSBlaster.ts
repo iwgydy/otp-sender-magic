@@ -192,50 +192,52 @@ export const useSMSBlaster = () => {
     
     await updateUsedMinutes();
     
-    const countdownInterval = setInterval(() => {
-      setRemainingTime(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          return 0;
-        }
-        return prev - 1;
-      });
+    let timeLeft = totalSeconds;
+    const smsInterval = setInterval(async () => {
+      if (timeLeft <= 0) {
+        clearInterval(smsInterval);
+        setLoading(false);
+        setRemainingTime(0);
+        addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
+        toast({
+          title: "สำเร็จ",
+          description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
+        });
+        return;
+      }
+
+      await sendSMS();
+      timeLeft--;
+      setRemainingTime(timeLeft);
     }, 1000);
 
-    const sendSMS = async () => {
-      const endpoints = [
-        { api: api1, name: 'Lotus\'s' },
-        { api: api2, name: 'TrueWallet' },
-        { api: api3, name: '1112' },
-        { api: api4, name: 'CH3+' }
-      ];
+    // เก็บ interval ไว้ใน ref เพื่อให้สามารถ clear ได้ถ้าจำเป็น
+    timerRef.current = smsInterval;
 
-      for (const { api, name } of endpoints) {
-        try {
-          await api(phoneNumber);
-          addLog(phoneNumber, 'success', `✓ ส่ง SMS สำเร็จผ่าน ${name}`);
-        } catch (error) {
-          addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${name}`);
-          console.error(`Error with endpoint ${name}:`, error);
-        }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
     };
+  };
 
-    const smsInterval = setInterval(async () => {
-      await sendSMS();
-    }, 1000);
+  const sendSMS = async () => {
+    const endpoints = [
+      { api: api1, name: 'Lotus\'s', icon: '🏪' },
+      { api: api2, name: 'TrueWallet', icon: '💳' },
+      { api: api3, name: '1112', icon: '📱' },
+      { api: api4, name: 'CH3+', icon: '📺' }
+    ];
 
-    setTimeout(() => {
-      clearInterval(smsInterval);
-      clearInterval(countdownInterval);
-      setLoading(false);
-      setRemainingTime(0);
-      addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
-      toast({
-        title: "สำเร็จ",
-        description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
-      });
-    }, totalSeconds * 1000);
+    for (const { api, name, icon } of endpoints) {
+      try {
+        await api(phoneNumber);
+        addLog(phoneNumber, 'success', `${icon} ส่ง SMS สำเร็จผ่าน ${name}`);
+      } catch (error) {
+        addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${name}`);
+        console.error(`Error with endpoint ${name}:`, error);
+      }
+    }
   };
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {

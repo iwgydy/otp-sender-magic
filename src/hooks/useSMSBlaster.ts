@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
 import { api1, api2, api3, api4 } from "@/services/smsAPIs";
@@ -15,6 +15,12 @@ interface PhoneReport {
   count: number;
 }
 
+interface PhoneHistory {
+  phone: string;
+  timestamp: number;
+  status: 'success' | 'error';
+}
+
 export const useSMSBlaster = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [minutes, setMinutes] = useState("1");
@@ -28,7 +34,60 @@ export const useSMSBlaster = () => {
   const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
-  const addLog = (phone: string, status: 'success' | 'error', message: string) => {
+  useEffect(() => {
+    // Load phone history on mount
+    loadPhoneHistory();
+    // Clean up old records every hour
+    const cleanupInterval = setInterval(cleanupOldRecords, 3600000);
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  const loadPhoneHistory = async () => {
+    try {
+      const response = await axios.get('https://goak-71ac8-default-rtdb.firebaseio.com/history.json');
+      if (response.data) {
+        const history = Object.values(response.data) as PhoneHistory[];
+        const phones = new Set(history.map((h: PhoneHistory) => h.phone));
+        setPhoneHistory(phones);
+      }
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  };
+
+  const saveToHistory = async (phone: string, status: 'success' | 'error') => {
+    try {
+      const timestamp = Date.now();
+      const historyEntry = {
+        phone,
+        timestamp,
+        status
+      };
+      await axios.post('https://goak-71ac8-default-rtdb.firebaseio.com/history.json', historyEntry);
+    } catch (error) {
+      console.error('Error saving to history:', error);
+    }
+  };
+
+  const cleanupOldRecords = async () => {
+    try {
+      const oneDayAgo = Date.now() - 86400000; // 24 hours ago
+      const response = await axios.get('https://goak-71ac8-default-rtdb.firebaseio.com/history.json');
+      
+      if (response.data) {
+        const entries = Object.entries(response.data);
+        for (const [key, value] of entries) {
+          if ((value as PhoneHistory).timestamp < oneDayAgo) {
+            await axios.delete(`https://goak-71ac8-default-rtdb.firebaseio.com/history/${key}.json`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up old records:', error);
+    }
+  };
+
+  const addLog = async (phone: string, status: 'success' | 'error', message: string) => {
     setLogs(prev => {
       const newLog = {
         timestamp: new Date().toLocaleTimeString(),
@@ -36,10 +95,12 @@ export const useSMSBlaster = () => {
         status,
         message
       };
-      setPhoneHistory(prev => new Set(prev.add(phone)));
       const newLogs = [newLog, ...prev].slice(0, 50);
       return newLogs;
     });
+    
+    await saveToHistory(phone, status);
+    setPhoneHistory(prev => new Set(prev.add(phone)));
   };
 
   const validatePhoneNumber = (number: string) => {

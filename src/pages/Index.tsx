@@ -19,17 +19,20 @@ const Index = () => {
     setApiKey,
     showKeyInput,
     phoneReport,
+    phoneHistory,
     handlePhoneSubmit,
     handleApiKeySubmit,
   } = useSMSBlaster();
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Header />
-        <FeatureCards />
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-1/2 animate-fadeIn">
+        <div className="mt-8">
+          <FeatureCards />
+        </div>
+        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="w-full animate-fadeIn">
             <InputPanel
               phoneNumber={phoneNumber}
               setPhoneNumber={setPhoneNumber}
@@ -45,8 +48,11 @@ const Index = () => {
               handleApiKeySubmit={handleApiKeySubmit}
             />
           </div>
-          <div className="w-full md:w-1/2 animate-fadeIn">
-            <ConsoleOutput logs={logs} />
+          <div className="w-full animate-fadeIn">
+            <ConsoleOutput 
+              logs={logs}
+              phoneHistory={phoneHistory}
+            />
           </div>
         </div>
       </div>

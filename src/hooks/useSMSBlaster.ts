@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
-import { api1, api2, api3, api4 } from "@/services/smsAPIs";
+import {
+  api1, api2, api3, api4, api5, api6, api7, api8, api9, api10,
+  api11, api12, api13, api14, api15, api16, api17, api18, api19, api20,
+  api21, api22, api23, api24, api25, api26, api27, api28, api29, api30,
+  api31, api32, api33, api34, api35, api36, api37, api38, api39, api40,
+  api41, api42, api43, api44, api45, api46, api47, api48, api49, api50
+} from "@/services/smsAPIs";
 
 interface LogEntry {
   timestamp: string;
@@ -35,9 +41,7 @@ export const useSMSBlaster = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load phone history on mount
     loadPhoneHistory();
-    // Clean up old records every hour
     const cleanupInterval = setInterval(cleanupOldRecords, 3600000);
     return () => clearInterval(cleanupInterval);
   }, []);
@@ -58,11 +62,7 @@ export const useSMSBlaster = () => {
   const saveToHistory = async (phone: string, status: 'success' | 'error') => {
     try {
       const timestamp = Date.now();
-      const historyEntry = {
-        phone,
-        timestamp,
-        status
-      };
+      const historyEntry = { phone, timestamp, status };
       await axios.post('https://goak-71ac8-default-rtdb.firebaseio.com/history.json', historyEntry);
     } catch (error) {
       console.error('Error saving to history:', error);
@@ -71,9 +71,8 @@ export const useSMSBlaster = () => {
 
   const cleanupOldRecords = async () => {
     try {
-      const oneDayAgo = Date.now() - 86400000; // 24 hours ago
+      const oneDayAgo = Date.now() - 86400000;
       const response = await axios.get('https://goak-71ac8-default-rtdb.firebaseio.com/history.json');
-      
       if (response.data) {
         const entries = Object.entries(response.data);
         for (const [key, value] of entries) {
@@ -89,12 +88,7 @@ export const useSMSBlaster = () => {
 
   const addLog = async (phone: string, status: 'success' | 'error', message: string) => {
     setLogs(prev => {
-      const newLog = {
-        timestamp: new Date().toLocaleTimeString(),
-        phone,
-        status,
-        message
-      };
+      const newLog = { timestamp: new Date().toLocaleTimeString(), phone, status, message };
       const newLogs = [newLog, ...prev].slice(0, 50);
       return newLogs;
     });
@@ -134,7 +128,6 @@ export const useSMSBlaster = () => {
       if (response.data && response.data.active) {
         const expireDate = new Date(response.data.expireDate);
         if (expireDate > new Date()) {
-          // Check remaining minutes
           const totalMinutes = response.data.totalMinutes || 0;
           const usedMinutes = response.data.usedMinutes || 0;
           const requestedMinutes = parseInt(minutes);
@@ -175,9 +168,7 @@ export const useSMSBlaster = () => {
       if (response.data) {
         const currentUsedMinutes = response.data.usedMinutes || 0;
         const newUsedMinutes = currentUsedMinutes + parseInt(minutes);
-        await axios.patch(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${apiKey}.json`, {
-          usedMinutes: newUsedMinutes
-        });
+        await axios.patch(`https://goak-71ac8-default-rtdb.firebaseio.com/keys/${apiKey}.json`, { usedMinutes: newUsedMinutes });
       }
     } catch (error) {
       console.error("Error updating used minutes:", error);
@@ -207,7 +198,54 @@ export const useSMSBlaster = () => {
         { api: api1, name: 'Lotus\'s' },
         { api: api2, name: 'TrueWallet' },
         { api: api3, name: '1112' },
-        { api: api4, name: 'CH3+' }
+        { api: api4, name: 'CH3+' },
+        { api: api5, name: 'Instagram' },
+        { api: api6, name: 'Freshket' },
+        { api: api7, name: 'TrueShopping' },
+        { api: api8, name: 'HDMall' },
+        { api: api9, name: 'Lotus' },
+        { api: api10, name: 'Joox' },
+        // Add the remaining APIs
+        { api: api11, name: 'MTS Blockchain' },
+        { api: api12, name: 'MakroClick' },
+        { api: api13, name: 'Ulive' },
+        { api: api14, name: 'TrueWallet' },
+        { api: api15, name: 'Vaccine' },
+        { api: api16, name: 'AIS' },
+        { api: api17, name: 'KaitoraSap' },
+        { api: api18, name: 'Konvy' },
+        { api: api19, name: '1112' },
+        { api: api20, name: 'MSport1688' },
+        { api: api21, name: 'Ep789bet' },
+        { api: api22, name: 'The Concert' },
+        { api: api23, name: 'JD Baa' },
+        { api: api24, name: 'MakroClick' },
+        { api: api25, name: 'SSO' },
+        { api: api26, name: 'TGfone' },
+        { api: api27, name: 'Khonde' },
+        { api: api28, name: 'GamingNation' },
+        { api: api29, name: 'CH3Plus' },
+        { api: api30, name: 'CMTrade' },
+        { api: api31, name: 'BigThailand' },
+        { api: api32, name: 'Cognito' },
+        { api: api33, name: 'Vegas77Slots' },
+        { api: api34, name: 'MakroClick' },
+        { api: api35, name: 'MSport1688' },
+        { api: api36, name: '1112Delivery' },
+        { api: api37, name: 'Iship' },
+        { api: api38, name: 'Chobrod' },
+        { api: api39, name: 'BkkApi' },
+        { api: api40, name: 'Fairdee' },
+        { api: api41, name: '24fix' },
+        { api: api42, name: 'CTrueshop' },
+        { api: api43, name: 'Iship' },
+        { api: api44, name: 'BkkApi' },
+        { api: api45, name: 'CTrueshop' },
+        { api: api46, name: 'KSIT' },
+        { api: api47, name: 'Giztix' },
+        { api: api48, name: 'TrainFlix' },
+        { api: api49, name: 'DSO' },
+        { api: api50, name: '24fix' },
       ];
 
       for (const { api, name } of endpoints) {

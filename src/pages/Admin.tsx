@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Key, UserPlus, Calendar, Trash2, ArrowLeft, Clock, SmartphoneCharging } from "lucide-react";
+import { Key, UserPlus, Calendar, Trash2, ArrowLeft, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
@@ -22,19 +23,9 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [expireDate, setExpireDate] = useState("");
-  const [totalMinutes, setTotalMinutes] = useState("60");
+  const [totalMinutes, setTotalMinutes] = useState("60"); // Default 60 minutes
   const [keys, setKeys] = useState<APIKey[]>([]);
-  const [blockedNumber, setBlockedNumber] = useState("");
-  const [blockReason, setBlockReason] = useState("");
-  const [blockedNumbers, setBlockedNumbers] = useState<{[key: string]: {reason: string}}>({});
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadKeys();
-      loadBlockedNumbers();
-    }
-  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,17 +52,6 @@ const Admin = () => {
       }
     } catch (error) {
       console.error("Error loading keys:", error);
-    }
-  };
-
-  const loadBlockedNumbers = async () => {
-    try {
-      const response = await axios.get("https://goak-71ac8-default-rtdb.firebaseio.com/blocked.json");
-      if (response.data) {
-        setBlockedNumbers(response.data);
-      }
-    } catch (error) {
-      console.error("Error loading blocked numbers:", error);
     }
   };
 
@@ -126,44 +106,6 @@ const Admin = () => {
     }
   };
 
-  const handleBlockNumber = async () => {
-    if (!blockedNumber || !blockReason) {
-      toast({
-        title: "กรุณากรอกข้อมูลให้ครบ",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await axios.put(`https://goak-71ac8-default-rtdb.firebaseio.com/blocked/${blockedNumber}.json`, {
-        reason: blockReason
-      });
-      toast({
-        title: "บล็อกเบอร์สำเร็จ",
-        description: `เบอร์ ${blockedNumber} ถูกบล็อกแล้ว`,
-      });
-      loadBlockedNumbers();
-      setBlockedNumber("");
-      setBlockReason("");
-    } catch (error) {
-      console.error("Error blocking number:", error);
-    }
-  };
-
-  const handleUnblockNumber = async (number: string) => {
-    try {
-      await axios.delete(`https://goak-71ac8-default-rtdb.firebaseio.com/blocked/${number}.json`);
-      toast({
-        title: "ปลดบล็อกเบอร์สำเร็จ",
-        description: `เบอร์ ${number} ถูกปลดบล็อกแล้ว`,
-      });
-      loadBlockedNumbers();
-    } catch (error) {
-      console.error("Error unblocking number:", error);
-    }
-  };
-
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
@@ -201,6 +143,7 @@ const Admin = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Create New Key */}
           <Card className="p-6 backdrop-blur-sm bg-black/40 border-gray-700">
             <h2 className="text-xl font-semibold text-white mb-4">สร้าง API Key ใหม่</h2>
             <div className="space-y-4">
@@ -244,6 +187,7 @@ const Admin = () => {
             </div>
           </Card>
 
+          {/* Existing Keys */}
           <Card className="p-6 backdrop-blur-sm bg-black/40 border-gray-700">
             <h2 className="text-xl font-semibold text-white mb-4">API Keys ที่มีอยู่</h2>
             <ScrollArea className="h-[400px]">
@@ -281,52 +225,6 @@ const Admin = () => {
             </ScrollArea>
           </Card>
         </div>
-
-        <Card className="mt-8 p-6 backdrop-blur-sm bg-black/40 border-gray-700">
-          <h2 className="text-xl font-semibold text-white mb-4">จัดการเบอร์ที่ถูกบล็อก</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="relative">
-                <SmartphoneCharging className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <Input
-                  value={blockedNumber}
-                  onChange={(e) => setBlockedNumber(e.target.value)}
-                  placeholder="เบอร์ที่ต้องการบล็อก"
-                  className="pl-10"
-                  maxLength={10}
-                />
-              </div>
-              <Input
-                value={blockReason}
-                onChange={(e) => setBlockReason(e.target.value)}
-                placeholder="เหตุผลในการบล็อก"
-              />
-              <Button onClick={handleBlockNumber} className="w-full bg-red-600 hover:bg-red-700">
-                บล็อกเบอร์
-              </Button>
-            </div>
-            
-            <ScrollArea className="h-[400px] border border-gray-700 rounded-lg p-4">
-              <div className="space-y-2">
-                {Object.entries(blockedNumbers).map(([number, data]) => (
-                  <div key={number} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                    <div>
-                      <p className="text-white font-mono">{number}</p>
-                      <p className="text-sm text-gray-400">{data.reason}</p>
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleUnblockNumber(number)}
-                    >
-                      ปลดบล็อก
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </Card>
       </div>
     </div>
   );

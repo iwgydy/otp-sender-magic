@@ -46,6 +46,8 @@ const Index = () => {
               phoneReport={phoneReport}
               handleSubmit={handlePhoneSubmit}
               handleApiKeySubmit={handleApiKeySubmit}
+              speed="normal"
+              setSpeed={() => {}}
             />
           </div>
           <div className="w-full animate-fadeIn">

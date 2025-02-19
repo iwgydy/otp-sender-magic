@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/sms-blaster/Header";
@@ -24,6 +23,8 @@ const Index = () => {
     showKeyInput,
     phoneReport,
     phoneHistory,
+    speed,
+    setSpeed,
     handlePhoneSubmit,
     handleApiKeySubmit,
   } = useSMSBlaster();
@@ -83,8 +84,8 @@ const Index = () => {
               phoneReport={phoneReport}
               handleSubmit={handlePhoneSubmit}
               handleApiKeySubmit={handleApiKeySubmit}
-              speed="normal"
-              setSpeed={() => {}}
+              speed={speed}
+              setSpeed={setSpeed}
             />
             
             <Card className="p-6 glass-morphism">

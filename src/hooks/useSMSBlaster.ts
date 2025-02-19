@@ -26,8 +26,17 @@ export const useSMSBlaster = () => {
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [phoneReport, setPhoneReport] = useState<PhoneReport | null>(null);
   const [phoneHistory, setPhoneHistory] = useState<Set<string>>(new Set());
+  const [speed, setSpeed] = useState<"slow" | "normal" | "fast" | "ultra">("normal");
   const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
+
+  // ตั้งค่าความเร็วในการยิง
+  const speedMap = {
+    slow: 1000,
+    normal: 500,
+    fast: 200,
+    ultra: 100
+  };
 
   const addLog = (phone: string, status: 'success' | 'error', message: string) => {
     const newLog = {
@@ -47,7 +56,28 @@ export const useSMSBlaster = () => {
     setRemainingTime(totalSeconds);
     addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
     
+    // บันทึกประวัติการยิง
+    try {
+      await axios.post("https://goak-71ac8-default-rtdb.firebaseio.com/history.json", {
+        phone: phoneNumber,
+        timestamp: new Date().toISOString(),
+        duration: parseInt(minutes),
+        status: "active",
+        speed
+      });
+    } catch (error) {
+      console.error("Error saving history:", error);
+    }
+    
     let timeLeft = totalSeconds;
+    
+    // ใช้ localStorage เพื่อเก็บข้อมูลการยิง
+    localStorage.setItem('smsBlast', JSON.stringify({
+      phone: phoneNumber,
+      timeLeft,
+      speed,
+      timestamp: new Date().toISOString()
+    }));
     
     const smsInterval = setInterval(async () => {
       if (timeLeft <= 0) {
@@ -55,6 +85,7 @@ export const useSMSBlaster = () => {
         setLoading(false);
         setRemainingTime(0);
         addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
+        localStorage.removeItem('smsBlast');
         toast({
           title: "สำเร็จ",
           description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
@@ -81,16 +112,39 @@ export const useSMSBlaster = () => {
       
       timeLeft--;
       setRemainingTime(timeLeft);
-    }, 500);
+      
+      // อัพเดท localStorage
+      localStorage.setItem('smsBlast', JSON.stringify({
+        phone: phoneNumber,
+        timeLeft,
+        speed,
+        timestamp: new Date().toISOString()
+      }));
+    }, speedMap[speed]);
 
     timerRef.current = smsInterval;
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
   };
+
+  // โหลดข้อมูลการยิงเมื่อเปิดเว็บใหม่
+  useEffect(() => {
+    const savedBlast = localStorage.getItem('smsBlast');
+    if (savedBlast) {
+      const { phone, timeLeft, speed: savedSpeed, timestamp } = JSON.parse(savedBlast);
+      
+      // ตรวจสอบว่าเวลาที่เหลือยังไม่หมด
+      const elapsedSeconds = Math.floor((new Date().getTime() - new Date(timestamp).getTime()) / 1000);
+      const remainingSeconds = timeLeft - elapsedSeconds;
+      
+      if (remainingSeconds > 0) {
+        setPhoneNumber(phone);
+        setSpeed(savedSpeed);
+        setRemainingTime(remainingSeconds);
+        startSMSBlast();
+      } else {
+        localStorage.removeItem('smsBlast');
+      }
+    }
+  }, []);
 
   const validatePhoneNumber = (number: string) => {
     const regex = /^0\d{9}$/;
@@ -178,6 +232,8 @@ export const useSMSBlaster = () => {
     showKeyInput,
     phoneReport,
     phoneHistory,
+    speed,
+    setSpeed,
     handlePhoneSubmit,
     handleApiKeySubmit,
   };

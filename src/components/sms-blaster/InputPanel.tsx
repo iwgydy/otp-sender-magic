@@ -1,10 +1,10 @@
-
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SmartphoneCharging, Clock, Key, Rocket, Zap } from "lucide-react";
+import { SmartphoneCharging, Clock, Key, Rocket, Zap, History as HistoryIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface PhoneReport {
   reason: string;
@@ -46,11 +46,16 @@ const InputPanel = ({
 }: InputPanelProps) => (
   <Card className="p-6 backdrop-blur-sm bg-black/40 border-gray-700 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           ตั้งค่าการส่ง
         </h2>
-        <p className="text-sm text-center text-gray-400">กรอกข้อมูลด้านล่างเพื่อเริ่มต้นใช้งาน</p>
+        <Link to="/history">
+          <Button variant="ghost" className="text-gray-400 hover:text-white">
+            <HistoryIcon className="mr-2 h-4 w-4" />
+            ประวัติการยิง
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-4">

@@ -1,10 +1,11 @@
+
 import React from "react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SmartphoneCharging, Clock, Key, Rocket, Zap, History as HistoryIcon } from "lucide-react";
-import { Link } from "react-router-dom";
+import { SmartphoneCharging, Clock, Zap, History as HistoryIcon } from "lucide-react";
 
 interface PhoneReport {
   reason: string;
@@ -22,8 +23,8 @@ interface InputPanelProps {
   setApiKey: (value: string) => void;
   remainingTime: number;
   phoneReport: PhoneReport | null;
-  speed: string;
-  setSpeed: (value: string) => void;
+  speed: "slow" | "normal" | "fast" | "ultra";
+  setSpeed: (value: "slow" | "normal" | "fast" | "ultra") => void;
   handleSubmit: (e: React.FormEvent) => void;
   handleApiKeySubmit: () => void;
 }
@@ -100,65 +101,46 @@ const InputPanel = ({
         </div>
 
         {showKeyInput && (
-          <div className="relative group">
-            <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+          <div className="space-y-4">
             <Input
               type="text"
-              placeholder="กรุณากรอก API Key"
+              placeholder="กรอก API Key"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full bg-gray-800/50 border-gray-700 text-gray-100"
             />
+            <Button
+              type="button"
+              onClick={handleApiKeySubmit}
+              className="w-full"
+              disabled={loading}
+            >
+              ยืนยัน Key
+            </Button>
           </div>
         )}
 
-        {remainingTime > 0 && (
-          <div className="text-center text-sm">
-            <span className="text-blue-400">เวลาที่เหลือ: </span>
-            <span className="text-white font-mono">
-              {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, '0')}
-            </span>
+        {!showKeyInput && (
+          <Button
+            type="submit"
+            className="w-full bg-blue-500 hover:bg-blue-600"
+            disabled={loading}
+          >
+            {loading ? "กำลังส่ง..." : "ตรวจสอบเบอร์"}
+          </Button>
+        )}
+
+        {loading && remainingTime > 0 && (
+          <div className="text-center text-sm text-gray-400">
+            เหลือเวลาอีก {Math.floor(remainingTime / 60)} นาที {remainingTime % 60} วินาที
           </div>
         )}
 
         {phoneReport && (
-          <div className="p-3 bg-red-900/50 rounded-md border border-red-500/50">
-            <p className="text-red-400 text-sm">
-              ⚠️ เบอร์นี้ถูกรายงาน: {phoneReport.reason}
-            </p>
-            <p className="text-red-400 text-sm">
-              จำนวนรายงาน: {phoneReport.count} ครั้ง
-            </p>
+          <div className="text-sm text-red-400">
+            ⚠️ เบอร์นี้ถูกรายงานว่า: {phoneReport.reason}
           </div>
         )}
-
-        <Button
-          type={showKeyInput ? "button" : "submit"}
-          onClick={showKeyInput ? handleApiKeySubmit : undefined}
-          className="w-full py-2 font-medium transition-all duration-200 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-blue-500/20"
-          disabled={loading}
-        >
-          {loading ? (
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>กำลังส่ง...</span>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              {showKeyInput ? (
-                <>
-                  <Key className="h-4 w-4" />
-                  <span>ยืนยัน API Key</span>
-                </>
-              ) : (
-                <>
-                  <Rocket className="h-4 w-4" />
-                  <span>ตรวจสอบเบอร์</span>
-                </>
-              )}
-            </div>
-          )}
-        </Button>
       </div>
     </form>
   </Card>

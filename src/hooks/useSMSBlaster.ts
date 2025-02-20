@@ -81,8 +81,7 @@ export const useSMSBlaster = () => {
     let successCount = 0;
     let failedCount = 0;
     
-    // บันทึกประวัติเริ่มต้นการยิง
-    const historyId = `history_${Date.now()}`;
+    // บันทึกประวัติเริ่มต้นการยิงโดยใช้ POST แทน PUT
     const historyEntry: SMSHistoryEntry = {
       phone: phoneNumber,
       startTime,
@@ -95,11 +94,14 @@ export const useSMSBlaster = () => {
       status: "active"
     };
 
+    let historyId = '';
     try {
-      await axios.put(
-        `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
+      const response = await axios.post(
+        "https://goak-71ac8-default-rtdb.firebaseio.com/history.json",
         historyEntry
       );
+      historyId = response.data.name; // Firebase จะส่ง ID กลับมาใน response.data.name
+      console.log("Created history entry with ID:", historyId);
     } catch (error) {
       console.error("Error saving initial history:", error);
     }
@@ -122,10 +124,13 @@ export const useSMSBlaster = () => {
         };
 
         try {
-          await axios.patch(
-            `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
-            finalHistory
-          );
+          if (historyId) {
+            await axios.patch(
+              `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
+              finalHistory
+            );
+            console.log("Updated history with final data:", historyId);
+          }
 
           // บันทึกเบอร์ที่ถูกบล็อก
           if (failedCount > successCount) {
@@ -163,14 +168,17 @@ export const useSMSBlaster = () => {
       
       // อัพเดทประวัติระหว่างยิง
       try {
-        await axios.patch(
-          `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
-          {
-            successCount,
-            failedCount,
-            totalRounds: Math.floor((successCount + failedCount) / 4)
-          }
-        );
+        if (historyId) {
+          await axios.patch(
+            `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
+            {
+              successCount,
+              failedCount,
+              totalRounds: Math.floor((successCount + failedCount) / 4)
+            }
+          );
+          console.log("Updated history progress:", historyId);
+        }
       } catch (error) {
         console.error("Error updating history during blast:", error);
       }

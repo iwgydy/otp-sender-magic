@@ -16,6 +16,18 @@ interface PhoneReport {
   count: number;
 }
 
+interface SMSHistoryEntry {
+  phone: string;
+  startTime: string;
+  endTime: string;
+  totalRounds: number;
+  successCount: number;
+  failedCount: number;
+  duration: number;
+  speed: "slow" | "normal" | "fast" | "ultra";
+  status: "active" | "completed";
+}
+
 export const useSMSBlaster = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [minutes, setMinutes] = useState("1");
@@ -54,17 +66,28 @@ export const useSMSBlaster = () => {
     setLoading(true);
     const totalSeconds = parseInt(minutes) * 60;
     setRemainingTime(totalSeconds);
+    const startTime = new Date().toISOString();
+    
+    let successCount = 0;
+    let failedCount = 0;
+    
     addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
     
     // บันทึกประวัติการยิง
+    const historyEntry: SMSHistoryEntry = {
+      phone: phoneNumber,
+      startTime,
+      endTime: '', // จะอัพเดทเมื่อจบ
+      totalRounds: 0,
+      successCount: 0,
+      failedCount: 0,
+      duration: parseInt(minutes),
+      speed,
+      status: "active"
+    };
+
     try {
-      await axios.post("https://goak-71ac8-default-rtdb.firebaseio.com/history.json", {
-        phone: phoneNumber,
-        timestamp: new Date().toISOString(),
-        duration: parseInt(minutes),
-        status: "active",
-        speed
-      });
+      await axios.post("https://goak-71ac8-default-rtdb.firebaseio.com/history.json", historyEntry);
     } catch (error) {
       console.error("Error saving history:", error);
     }
@@ -76,7 +99,9 @@ export const useSMSBlaster = () => {
       phone: phoneNumber,
       timeLeft,
       speed,
-      timestamp: new Date().toISOString()
+      timestamp: startTime,
+      successCount,
+      failedCount
     }));
     
     const smsInterval = setInterval(async () => {
@@ -84,6 +109,36 @@ export const useSMSBlaster = () => {
         clearInterval(smsInterval);
         setLoading(false);
         setRemainingTime(0);
+        
+        // อัพเดทประวัติเมื่อจบการยิง
+        const endTime = new Date().toISOString();
+        const finalHistory: Partial<SMSHistoryEntry> = {
+          endTime,
+          totalRounds: Math.floor(successCount / 4),
+          successCount,
+          failedCount,
+          status: "completed"
+        };
+
+        try {
+          const response = await axios.get("https://goak-71ac8-default-rtdb.firebaseio.com/history.json");
+          if (response.data) {
+            const histories = Object.entries(response.data);
+            const lastHistory = histories.find(([_, h]: [string, any]) => 
+              h.phone === phoneNumber && h.status === "active"
+            );
+            
+            if (lastHistory) {
+              await axios.patch(
+                `https://goak-71ac8-default-rtdb.firebaseio.com/history/${lastHistory[0]}.json`,
+                finalHistory
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error updating history:", error);
+        }
+
         addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
         localStorage.removeItem('smsBlast');
         toast({
@@ -101,8 +156,10 @@ export const useSMSBlaster = () => {
       ].map(async ({ api, name }) => {
         try {
           await api(phoneNumber);
+          successCount++;
           addLog(phoneNumber, 'success', `ส่ง SMS สำเร็จผ่าน ${name}`);
         } catch (error) {
+          failedCount++;
           addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${name}`);
           console.error(`Error with endpoint ${name}:`, error);
         }
@@ -118,7 +175,9 @@ export const useSMSBlaster = () => {
         phone: phoneNumber,
         timeLeft,
         speed,
-        timestamp: new Date().toISOString()
+        timestamp: startTime,
+        successCount,
+        failedCount
       }));
     }, speedMap[speed]);
 

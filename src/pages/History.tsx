@@ -6,18 +6,20 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, History as HistoryIcon, Clock, Phone, CheckCircle, XCircle, Zap } from "lucide-react";
 import axios from "axios";
 
-interface SMSHistory {
+interface SMSHistoryEntry {
   phone: string;
-  timestamp: string;
+  startTime: string;
+  endTime: string;
+  totalRounds: number;
+  successCount: number;
+  failedCount: number;
   duration: number;
-  status: string;
   speed: string;
-  success?: number;
-  failed?: number;
+  status: string;
 }
 
 const History = () => {
-  const [history, setHistory] = useState<SMSHistory[]>([]);
+  const [history, setHistory] = useState<SMSHistoryEntry[]>([]);
   const [totalPhones, setTotalPhones] = useState(0);
   const [totalSuccess, setTotalSuccess] = useState(0);
   const [totalFailed, setTotalFailed] = useState(0);
@@ -30,27 +32,23 @@ const History = () => {
     try {
       const response = await axios.get("https://goak-71ac8-default-rtdb.firebaseio.com/history.json");
       if (response.data) {
-        const historyData = Object.values(response.data) as SMSHistory[];
-        const processedData = historyData.map(item => ({
-          ...item,
-          success: Math.floor(Math.random() * 100) + 50, // สมมติค่าสำเร็จ
-          failed: Math.floor(Math.random() * 20) // สมมติค่าล้มเหลว
-        }));
+        // แปลงข้อมูลจาก object เป็น array และกรองเฉพาะรายการที่สมบูรณ์
+        const historyData = Object.values(response.data) as SMSHistoryEntry[];
+        const completedHistory = historyData.filter(item => item.status === "completed");
         
-        setHistory(processedData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        setHistory(completedHistory.sort((a, b) => 
+          new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+        ));
         
-        const uniquePhones = new Set(historyData.map(item => item.phone));
+        // คำนวณสถิติรวม
+        const uniquePhones = new Set(completedHistory.map(item => item.phone));
         setTotalPhones(uniquePhones.size);
         
-        // คำนวณยอดรวมทั้งหมด
-        let success = 0;
-        let failed = 0;
-        processedData.forEach(item => {
-          success += item.success || 0;
-          failed += item.failed || 0;
-        });
-        setTotalSuccess(success);
-        setTotalFailed(failed);
+        const totalSuccessCount = completedHistory.reduce((sum, item) => sum + (item.successCount || 0), 0);
+        const totalFailedCount = completedHistory.reduce((sum, item) => sum + (item.failedCount || 0), 0);
+        
+        setTotalSuccess(totalSuccessCount);
+        setTotalFailed(totalFailedCount);
       }
     } catch (error) {
       console.error("Error loading history:", error);
@@ -58,15 +56,19 @@ const History = () => {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('th-TH', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).format(date);
+    try {
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date);
+    } catch (error) {
+      return "ไม่ระบุ";
+    }
   };
 
   return (
@@ -129,9 +131,10 @@ const History = () => {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-white">{item.phone}</h3>
-                    <p className="text-sm text-gray-400">
-                      {formatDate(item.timestamp)}
-                    </p>
+                    <div className="text-sm text-gray-400">
+                      <p>เริ่ม: {formatDate(item.startTime)}</p>
+                      <p>สิ้นสุด: {formatDate(item.endTime)}</p>
+                    </div>
                   </div>
                 </div>
                 
@@ -143,19 +146,19 @@ const History = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="h-4 w-4 text-blue-400" />
-                    <span className="text-gray-400">เวลา:</span>
-                    <span className="text-white">{item.duration} นาที</span>
+                    <span className="text-gray-400">จำนวนรอบ:</span>
+                    <span className="text-white">{item.totalRounds}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-6">
                   <div className="flex items-center space-x-2">
                     <CheckCircle className="h-4 w-4 text-green-400" />
-                    <span className="text-green-400">{item.success}</span>
+                    <span className="text-green-400">{item.successCount}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <XCircle className="h-4 w-4 text-red-400" />
-                    <span className="text-red-400">{item.failed}</span>
+                    <span className="text-red-400">{item.failedCount}</span>
                   </div>
                 </div>
               </div>

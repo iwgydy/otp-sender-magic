@@ -42,6 +42,7 @@ export const useSMSBlaster = () => {
   const timerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
 
+  // ตั้งค่าความเร็วในการยิง
   const speedMap = {
     slow: 1000,
     normal: 500,
@@ -56,21 +57,9 @@ export const useSMSBlaster = () => {
       status,
       message
     };
+    
     setLogs(prev => [newLog, ...prev].slice(0, 100));
     setPhoneHistory(prev => new Set(prev.add(phone)));
-  };
-
-  // บันทึกเบอร์ที่ถูกบล็อก
-  const saveBlockedPhone = async (phone: string) => {
-    try {
-      await axios.post("https://goak-71ac8-default-rtdb.firebaseio.com/blocked.json", {
-        phone,
-        timestamp: new Date().toISOString(),
-        reason: "ถูกบล็อกจากการยิง SMS"
-      });
-    } catch (error) {
-      console.error("Error saving blocked phone:", error);
-    }
   };
 
   const startSMSBlast = async () => {
@@ -78,14 +67,17 @@ export const useSMSBlaster = () => {
     const totalSeconds = parseInt(minutes) * 60;
     setRemainingTime(totalSeconds);
     const startTime = new Date().toISOString();
+    
     let successCount = 0;
     let failedCount = 0;
     
-    // บันทึกประวัติเริ่มต้นการยิงโดยใช้ POST แทน PUT
+    addLog(phoneNumber, 'success', `เริ่มต้นการส่ง SMS เป็นเวลา ${minutes} นาที`);
+    
+    // บันทึกประวัติการยิง
     const historyEntry: SMSHistoryEntry = {
       phone: phoneNumber,
       startTime,
-      endTime: '',
+      endTime: '', // จะอัพเดทเมื่อจบ
       totalRounds: 0,
       successCount: 0,
       failedCount: 0,
@@ -94,53 +86,61 @@ export const useSMSBlaster = () => {
       status: "active"
     };
 
-    let historyId = '';
     try {
-      const response = await axios.post(
-        "https://goak-71ac8-default-rtdb.firebaseio.com/history.json",
-        historyEntry
-      );
-      historyId = response.data.name; // Firebase จะส่ง ID กลับมาใน response.data.name
-      console.log("Created history entry with ID:", historyId);
+      await axios.post("https://goak-71ac8-default-rtdb.firebaseio.com/history.json", historyEntry);
     } catch (error) {
-      console.error("Error saving initial history:", error);
+      console.error("Error saving history:", error);
     }
-
+    
     let timeLeft = totalSeconds;
+    
+    // ใช้ localStorage เพื่อเก็บข้อมูลการยิง
+    localStorage.setItem('smsBlast', JSON.stringify({
+      phone: phoneNumber,
+      timeLeft,
+      speed,
+      timestamp: startTime,
+      successCount,
+      failedCount
+    }));
+    
     const smsInterval = setInterval(async () => {
       if (timeLeft <= 0) {
         clearInterval(smsInterval);
         setLoading(false);
         setRemainingTime(0);
-
+        
         // อัพเดทประวัติเมื่อจบการยิง
         const endTime = new Date().toISOString();
         const finalHistory: Partial<SMSHistoryEntry> = {
           endTime,
-          totalRounds: Math.floor((successCount + failedCount) / 4),
+          totalRounds: Math.floor(successCount / 4),
           successCount,
           failedCount,
           status: "completed"
         };
 
         try {
-          if (historyId) {
-            await axios.patch(
-              `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
-              finalHistory
+          const response = await axios.get("https://goak-71ac8-default-rtdb.firebaseio.com/history.json");
+          if (response.data) {
+            const histories = Object.entries(response.data);
+            const lastHistory = histories.find(([_, h]: [string, any]) => 
+              h.phone === phoneNumber && h.status === "active"
             );
-            console.log("Updated history with final data:", historyId);
-          }
-
-          // บันทึกเบอร์ที่ถูกบล็อก
-          if (failedCount > successCount) {
-            await saveBlockedPhone(phoneNumber);
+            
+            if (lastHistory) {
+              await axios.patch(
+                `https://goak-71ac8-default-rtdb.firebaseio.com/history/${lastHistory[0]}.json`,
+                finalHistory
+              );
+            }
           }
         } catch (error) {
-          console.error("Error updating final history:", error);
+          console.error("Error updating history:", error);
         }
 
         addLog(phoneNumber, 'success', `🏁 สิ้นสุดการส่ง SMS แล้ว`);
+        localStorage.removeItem('smsBlast');
         toast({
           title: "สำเร็จ",
           description: `สิ้นสุดการส่ง SMS ไปยังหมายเลข ${phoneNumber}`,
@@ -161,34 +161,49 @@ export const useSMSBlaster = () => {
         } catch (error) {
           failedCount++;
           addLog(phoneNumber, 'error', `⚠ ไม่สามารถส่ง SMS ผ่าน ${name}`);
+          console.error(`Error with endpoint ${name}:`, error);
         }
       });
 
       await Promise.all(sendPromises);
       
-      // อัพเดทประวัติระหว่างยิง
-      try {
-        if (historyId) {
-          await axios.patch(
-            `https://goak-71ac8-default-rtdb.firebaseio.com/history/${historyId}.json`,
-            {
-              successCount,
-              failedCount,
-              totalRounds: Math.floor((successCount + failedCount) / 4)
-            }
-          );
-          console.log("Updated history progress:", historyId);
-        }
-      } catch (error) {
-        console.error("Error updating history during blast:", error);
-      }
-
       timeLeft--;
       setRemainingTime(timeLeft);
+      
+      // อัพเดท localStorage
+      localStorage.setItem('smsBlast', JSON.stringify({
+        phone: phoneNumber,
+        timeLeft,
+        speed,
+        timestamp: startTime,
+        successCount,
+        failedCount
+      }));
     }, speedMap[speed]);
 
     timerRef.current = smsInterval;
   };
+
+  // โหลดข้อมูลการยิงเมื่อเปิดเว็บใหม่
+  useEffect(() => {
+    const savedBlast = localStorage.getItem('smsBlast');
+    if (savedBlast) {
+      const { phone, timeLeft, speed: savedSpeed, timestamp } = JSON.parse(savedBlast);
+      
+      // ตรวจสอบว่าเวลาที่เหลือยังไม่หมด
+      const elapsedSeconds = Math.floor((new Date().getTime() - new Date(timestamp).getTime()) / 1000);
+      const remainingSeconds = timeLeft - elapsedSeconds;
+      
+      if (remainingSeconds > 0) {
+        setPhoneNumber(phone);
+        setSpeed(savedSpeed);
+        setRemainingTime(remainingSeconds);
+        startSMSBlast();
+      } else {
+        localStorage.removeItem('smsBlast');
+      }
+    }
+  }, []);
 
   const validatePhoneNumber = (number: string) => {
     const regex = /^0\d{9}$/;

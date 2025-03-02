@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CreditCard, ArrowLeft, Copy, Check, AlertCircle } from "lucide-react";
+import { CreditCard, ArrowLeft, Copy, Check, AlertCircle, Info } from "lucide-react";
 import { verifyAndTopupAngpao, generateApiKey } from "@/services/topupAPI";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,12 +16,14 @@ const TopUp = () => {
   const [expireDate, setExpireDate] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [error, setError] = useState("");
+  const [voucherInfo, setVoucherInfo] = useState<{ id: string; amount: string } | null>(null);
   const { toast } = useToast();
 
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setVoucherInfo(null);
     
     try {
       if (!angpaoLink.trim()) {
@@ -30,6 +32,16 @@ const TopUp = () => {
       
       // ตรวจสอบอั้งเปา โดยใช้เบอร์โทรที่กำหนดไว้แล้ว
       const response = await verifyAndTopupAngpao(angpaoLink, "");
+      
+      console.log("API Response:", response);
+      
+      // แสดงข้อมูล voucher ที่ได้รับ
+      if (response.data && response.data.voucher) {
+        setVoucherInfo({
+          id: response.data.voucher.voucher_id,
+          amount: response.data.voucher.amount_baht
+        });
+      }
       
       // ตรวจสอบสถานะการเติมเงิน
       if (response.status.code !== "VOUCHER_OUT_OF_STOCK" && response.status.code !== "SUCCESS") {
@@ -124,10 +136,25 @@ const TopUp = () => {
                   onChange={(e) => setAngpaoLink(e.target.value)}
                   className="w-full bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500"
                 />
-                <p className="text-xs text-gray-400">
-                  ตัวอย่าง: https://gift.truemoney.com/campaign/?v=abcdefghijklmnopqrstuvwxyz123456at
-                </p>
+                <div className="flex items-start text-xs text-gray-400">
+                  <Info className="h-4 w-4 mr-1 flex-shrink-0 mt-0.5 text-blue-400" />
+                  <p>
+                    ตัวอย่าง: https://gift.truemoney.com/campaign/?v=abcdefghijklmnopqrstuvwxyz123456at
+                    <br />
+                    หรือใส่เฉพาะรหัสอั้งเปา เช่น abcdefghijklmnopqrstuvwxyz123456at
+                  </p>
+                </div>
               </div>
+              
+              {voucherInfo && (
+                <div className="p-3 bg-blue-900/30 border border-blue-800 rounded-md">
+                  <p className="text-sm text-blue-300">
+                    ข้อมูลอั้งเปา:<br />
+                    ID: {voucherInfo.id}<br />
+                    จำนวนเงิน: {voucherInfo.amount} บาท
+                  </p>
+                </div>
+              )}
               
               {error && (
                 <div className="p-3 bg-red-900/30 border border-red-800 rounded-md flex items-start">

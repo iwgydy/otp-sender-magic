@@ -41,17 +41,30 @@ export const verifyAndTopupAngpao = async (angpaoLink: string, phoneNumber: stri
     // เบอร์โทรศัพท์สำหรับรับเงิน (hardcoded)
     const receiverPhone = "0825658423";
     
-    // ตัดเอาแค่ ID ของอั้งเปาหากผู้ใช้ใส่ลิงก์เต็ม
-    const linkPattern = /([a-zA-Z0-9]{32}at)/;
-    const matches = angpaoLink.match(linkPattern);
-    const linkId = matches ? matches[0] : angpaoLink;
+    // ดึงเอา voucher ID จากลิงก์
+    let voucherId = angpaoLink;
+    
+    // ตรวจสอบว่าเป็นลิงก์เต็มหรือไม่
+    if (angpaoLink.includes("gift.truemoney.com/campaign/?v=")) {
+      // ตัดเอาเฉพาะส่วนที่เป็น ID จากลิงก์เต็ม
+      const parts = angpaoLink.split("v=");
+      if (parts.length > 1) {
+        voucherId = parts[1];
+      }
+    }
+    
+    // ตัดช่องว่างทั้งหมดออก
+    voucherId = voucherId.trim();
+    
+    console.log("Voucher ID to verify:", voucherId);
     
     const response = await axios.get<TopupResponse>(
-      `https://store.cyber-safe.pro/api/topup/truemoney/angpaofree/${linkId}/ผู้รับ${receiverPhone}`
+      `https://store.cyber-safe.pro/api/topup/truemoney/angpaofree/${voucherId}/ผู้รับ${receiverPhone}`
     );
     
     return response.data;
   } catch (error) {
+    console.error("Error verifying AngPao:", error);
     if (axios.isAxiosError(error) && error.response) {
       return error.response.data as TopupResponse;
     }

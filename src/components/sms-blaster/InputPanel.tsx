@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SmartphoneCharging, Clock, Zap, History as HistoryIcon } from "lucide-react";
+import { SmartphoneCharging, Clock, Zap, History as HistoryIcon, CreditCard } from "lucide-react";
 
 interface PhoneReport {
   reason: string;
@@ -51,12 +50,20 @@ const InputPanel = ({
         <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
           ตั้งค่าการส่ง
         </h2>
-        <Link to="/history">
-          <Button variant="ghost" className="text-gray-400 hover:text-white">
-            <HistoryIcon className="mr-2 h-4 w-4" />
-            ประวัติการยิง
-          </Button>
-        </Link>
+        <div className="flex space-x-2">
+          <Link to="/history">
+            <Button variant="ghost" className="text-gray-400 hover:text-white">
+              <HistoryIcon className="mr-2 h-4 w-4" />
+              ประวัติการยิง
+            </Button>
+          </Link>
+          <Link to="/topup">
+            <Button variant="outline" className="text-gray-300 hover:text-white border-blue-500 hover:bg-blue-500/20">
+              <CreditCard className="mr-2 h-4 w-4" />
+              เติมเงิน
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-4">

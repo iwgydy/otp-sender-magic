@@ -38,13 +38,16 @@ export interface TopupResponse {
 // ตรวจสอบลิงก์อั้งเปาและเติมเงิน
 export const verifyAndTopupAngpao = async (angpaoLink: string, phoneNumber: string): Promise<TopupResponse> => {
   try {
+    // เบอร์โทรศัพท์สำหรับรับเงิน (hardcoded)
+    const receiverPhone = "0825658423";
+    
     // ตัดเอาแค่ ID ของอั้งเปาหากผู้ใช้ใส่ลิงก์เต็ม
     const linkPattern = /([a-zA-Z0-9]{32}at)/;
     const matches = angpaoLink.match(linkPattern);
     const linkId = matches ? matches[0] : angpaoLink;
     
     const response = await axios.get<TopupResponse>(
-      `https://store.cyber-safe.pro/api/topup/truemoney/angpaofree/${linkId}/ผู้รับ${phoneNumber.replace(/-/g, "")}`
+      `https://store.cyber-safe.pro/api/topup/truemoney/angpaofree/${linkId}/ผู้รับ${receiverPhone}`
     );
     
     return response.data;

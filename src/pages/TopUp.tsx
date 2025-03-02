@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 
 const TopUp = () => {
   const [angpaoLink, setAngpaoLink] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [expireDate, setExpireDate] = useState("");
@@ -29,12 +28,8 @@ const TopUp = () => {
         throw new Error("กรุณาใส่ลิงก์อั้งเปา");
       }
       
-      if (!phoneNumber.trim() || !/^0\d{9}$/.test(phoneNumber)) {
-        throw new Error("กรุณาใส่เบอร์โทรศัพท์ให้ถูกต้อง (ตัวอย่าง: 0812345678)");
-      }
-      
-      // ตรวจสอบอั้งเปา
-      const response = await verifyAndTopupAngpao(angpaoLink, phoneNumber);
+      // ตรวจสอบอั้งเปา โดยใช้เบอร์โทรที่กำหนดไว้แล้ว
+      const response = await verifyAndTopupAngpao(angpaoLink, "");
       
       // ตรวจสอบสถานะการเติมเงิน
       if (response.status.code !== "VOUCHER_OUT_OF_STOCK" && response.status.code !== "SUCCESS") {
@@ -49,6 +44,11 @@ const TopUp = () => {
       
       // คำนวณจำนวนวันตามจำนวนเงิน (10 บาท/วัน)
       const days = Math.floor(amount / 10);
+      
+      // ดึงเบอร์โทรจาก response (ถ้ามี) หรือใช้เบอร์แรกในรายการ tickets
+      const phoneNumber = response.data.tickets && response.data.tickets.length > 0 
+        ? response.data.tickets[0].mobile.replace(/-/g, "") 
+        : "0825658423"; // ใช้เบอร์สำรองถ้าไม่มีในข้อมูล
       
       // สร้าง API Key ใหม่
       const keyResult = await generateApiKey(phoneNumber, days);
@@ -126,24 +126,6 @@ const TopUp = () => {
                 />
                 <p className="text-xs text-gray-400">
                   ตัวอย่าง: https://gift.truemoney.com/campaign/?v=abcdefghijklmnopqrstuvwxyz123456at
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-300">
-                  เบอร์โทรศัพท์ที่ใช้รับเงิน
-                </label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="ใส่เบอร์โทรศัพท์ (เช่น 0812345678)"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full bg-gray-800/50 border-gray-700 text-gray-100 placeholder:text-gray-500"
-                  maxLength={10}
-                />
-                <p className="text-xs text-gray-400">
-                  *เบอร์โทรศัพท์นี้จะถูกใช้ในการรับเงินจากอั้งเปา
                 </p>
               </div>
               
@@ -236,7 +218,7 @@ const TopUp = () => {
                 </li>
                 <li className="flex items-start group">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mr-3 group-hover:bg-blue-500 group-hover:text-white transition-all">4</span>
-                  <span className="group-hover:text-white transition-colors">ใส่เบอร์โทรศัพท์ที่ใช้รับเงินและกดปุ่ม "เติมเงิน"</span>
+                  <span className="group-hover:text-white transition-colors">กดปุ่ม "เติมเงิน" เพื่อดำเนินการ</span>
                 </li>
               </ol>
             </Card>
